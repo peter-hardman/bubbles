@@ -12,6 +12,7 @@ AREA_WIDTH = 800
 AREA_HEIGHT = 600
 TIMER_INTERVAL = 10
 MIN_HIGHLIGHT_RADIUS = 10
+INFO_LIFETIME = 30
 
 class Bubble(QRect,QWidget):
 
@@ -29,13 +30,16 @@ class Bubble(QRect,QWidget):
         self.locationY = height/2+float(random.randint(-self.radius, self.radius))
 
         self.create_colors()
-
-
-
         self.velocityX = 1.00 * random.randint(-10, 10) #float (random.randint(-100,100)/10)
         self.velocityY = 1.00 * random.randint(-10, 10) #float(random.randint(-100, 100) / 10)
 
+        self.show_info_count = 0
+        self.age =0
         self.alive = True
+
+    def showInfo(self):
+        self.show_info_count = INFO_LIFETIME
+        print ("info")
 
     def create_colors(self):
         MIN = 0xDD
@@ -102,8 +106,6 @@ class Bubble(QRect,QWidget):
         print ("[",r,g,b,"][",rv,gv,bv, "][",new_red,new_green,new_blue,"]")
         self.set_colors(new_red,new_green,new_blue)
 
-
-
     def birth(self,new_birth):
         # when we get too large, we start to emit bubbles from ourselves which are proportional to total area.
         # Have some randomness to the size of the ones emitted.
@@ -123,7 +125,6 @@ class Bubble(QRect,QWidget):
         new_birth.velocityX=(new_birth.radius)*math.sin(angle*math.pi/180)
         new_birth.velocityY =(new_birth.radius)*math.cos(angle*math.pi/180)
         new_birth.create_colors()
-
 
     def consume(self,victim):
     # This function consumes a victim.
@@ -166,6 +167,7 @@ class Bubble(QRect,QWidget):
 #            self.high_color_blue = 0xFF
 
     def move(self):
+        self.age = self.age + 1
         FRICTION = 0 #-0.000001*self.area
         #Check for collisions with walls
         if self.locationX-self.radius <= self.bounds.left():
@@ -256,6 +258,18 @@ class Bubble(QRect,QWidget):
 #            painter.setBrush(brush)
 #            painter.drawPoint(self.locationX , self.locationY)
 #   End block.
+            if (self.show_info_count > 0):
+            #    sbrush = QtGui.QBrush()
+            #    sbrush.setStyle(Qt.SolidPattern)
+            #    sbrush.setColor(QtGui.QColor('white'))
+            #    status_rect = QRect(self.locationX, self.locationY, 50, 50)
+            #    painter.fillRect(status_rect, sbrush)
+                painter.setPen(QtGui.QColor('White'))
+                status_str = "Area =" + str(int(self.area))
+                painter.drawText(self.locationX+5, self.locationY+0, status_str)
+                status_str = "Age =" + str(self.age)
+                painter.drawText(self.locationX+5, self.locationY+20, status_str)
+                self.show_info_count=self.show_info_count-1
             painter.end()
         else:
             pass
@@ -284,6 +298,15 @@ class AppForm(QMainWindow):
 
         self.total_bubble_area = 0
 
+    def mousePressEvent(self,e):
+
+        print (e.x(), e.y())
+        for b in self.bubbles:
+            distance = math.sqrt((b.locationX-e.x())*(b.locationX-e.x()) + (b.locationY-e.y())*(b.locationY-e.y()))
+            if distance<b.radius:
+                print ("Found bubble")
+                b.showInfo()
+                break
 
     def update_bubbles(self):
     # Update the position of the bubbles.
