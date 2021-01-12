@@ -10,8 +10,8 @@ from PyQt5 import QtGui
 
 MAX_BUBBLE_AREA =  20000
 MAX_AREA = 5000
-AREA_WIDTH =2000
-AREA_HEIGHT =1000
+AREA_WIDTH =800
+AREA_HEIGHT =600
 TIMER_INTERVAL =10
 
 def rgb_mix_colors(area1,area2, *colors):
@@ -55,7 +55,9 @@ class Bubble(QRect,QWidget):
         # when we get too large, we start to emit bubbles from ourselves which are proportional to total area.
         new_birth.area = self.area * random.randint(1,20)*0.001
         new_birth.radius=math.sqrt(new_birth.area/math.pi)
-        self.area=self.area-new_birth.area
+
+        self.area= self.area -new_birth.area
+        self.radius = math.sqrt(self.area / math.pi)
         # put the new bubble somewhere on our circumference.
         #For now just hack it to always be the y=0, x-axis.
         angle= random.randint(1,360)
