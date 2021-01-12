@@ -13,34 +13,9 @@ AREA_HEIGHT = 600
 TIMER_INTERVAL = 10
 MIN_HIGHLIGHT_RADIUS = 10
 
-def rgb_mix_colors(area1,area2, *colors):
-    """ color mix
-    :param rgb_scale: scale of values
-    :param colors: list of colors (tuple of rgb values)
-    :return: relative mix of rgb colors """
-    r = g = b = 0
-    r = colors[0][0] + (colors[0][0] - colors[1][0]) * (area2 / area1)
-    g = colors[0][1] + (colors[0][1] - colors[1][1]) * (area2 / area1)
-    b = colors[0][2] + (colors[0][2] - colors[1][2]) * (area2 / area1)
-
-    if int(r) > 0xFF:
-        r = 0xFF
-    if int(g) > 0xFF:
-        g = 0xFF
-    if int(b) > 0xFF:
-        b = 0xFF
-
-    if int(r) < 0x10:
-        r = 0x10
-    if int(g) < 0x10:
-        g = 0x10
-    if int(b) < 0x10:
-        b = 0x10
-
-    return int(r), int(g), int(b)
-
-
 class Bubble(QRect,QWidget):
+
+
 
     def __init__(self,boundsRect,parent):
 
@@ -53,25 +28,81 @@ class Bubble(QRect,QWidget):
         self.locationX = width/2+float(random.randint(-self.radius,  self.radius))
         self.locationY = height/2+float(random.randint(-self.radius, self.radius))
 
-        self.color_red = random.randint(0, 0xFF)
-        self.color_green = random.randint(0, 0xFF)
-        self.color_blue = random.randint(0, 0xFF)
+        self.create_colors()
 
-        self.high_color_red = self.color_red + 0x40
-        self.high_color_green = self.color_green + 0x40
-        self.high_color_blue = self.color_blue + 0x40
 
-        if self.high_color_red >0xFF:
-            self.high_color_red = 0xFF
-        if self.high_color_green >0xFF:
-            self.high_color_green = 0xFF
-        if self.high_color_blue > 0xFF:
-            self.high_color_blue = 0xFF
 
         self.velocityX = 1.00 * random.randint(-10, 10) #float (random.randint(-100,100)/10)
         self.velocityY = 1.00 * random.randint(-10, 10) #float(random.randint(-100, 100) / 10)
 
         self.alive = True
+
+    def create_colors(self):
+        MIN = 0xDD
+        red = 0x00
+        green = 0x00
+        blue = 0x00
+        #   Try to make colors more intense by only making RGB at start.
+        x=random.randint(1,6)
+        if x == 1:
+            red = random.randint(MIN, 0xFF)
+        if x == 2:
+            green = random.randint(MIN, 0xFF)
+        if x == 3:
+            blue = random.randint(MIN, 0xFF)
+        if x == 4:
+            red = random.randint(MIN, 0xFF)
+            green = random.randint(MIN, 0xFF)
+        if x == 5:
+            red = random.randint(MIN, 0xFF)
+            blue = random.randint(MIN, 0xFF)
+        if x == 6:
+            green = random.randint(MIN, 0xFF)
+            blue = random.randint(MIN, 0xFF)
+
+        self.set_colors(red,green,blue)
+
+    def set_colors(self,new_red,new_green,new_blue):
+
+        if new_red > 0xFF:
+            new_red = 0xFF
+        if new_green > 0xFF:
+            new_green = 0xFF
+        if new_blue > 0xFF:
+            new_blue = 0xFF
+
+        self.color_red = int(new_red)
+        self.color_green = int(new_green)
+        self.color_blue = int(new_blue)
+
+        self.high_color_red = self.color_red + 0x40
+        self.high_color_green = self.color_green + 0x40
+        self.high_color_blue = self.color_blue + 0x40
+
+        if self.high_color_red > 0xFF:
+            self.high_color_red = 0xFF
+        if self.high_color_green > 0xFF:
+            self.high_color_green = 0xFF
+        if self.high_color_blue > 0xFF:
+            self.high_color_blue = 0xFF
+
+    def merge_colors(self,victim):
+        r = self.color_red
+        g = self.color_green
+        b = self.color_blue
+
+        rv = victim.color_red
+        gv = victim.color_green
+        bv = victim.color_blue
+
+        new_red= r + ((rv-r) * (victim.area/self.area))
+        new_green = g + ((gv-g) * (victim.area / self.area))
+        new_blue = b + ((bv - b) * (victim.area / self.area))
+
+        print ("[",r,g,b,"][",rv,gv,bv, "][",new_red,new_green,new_blue,"]")
+        self.set_colors(new_red,new_green,new_blue)
+
+
 
     def birth(self,new_birth):
         # when we get too large, we start to emit bubbles from ourselves which are proportional to total area.
@@ -91,10 +122,8 @@ class Bubble(QRect,QWidget):
         # Always fire the new_birth away from us. Make the speed proportional to the size.
         new_birth.velocityX=(new_birth.radius)*math.sin(angle*math.pi/180)
         new_birth.velocityY =(new_birth.radius)*math.cos(angle*math.pi/180)
-        # Make the children the same color as parent too.
-        new_birth.color_red=self.color_red
-        new_birth.color_green = self.color_green
-        new_birth.color_blue = self.color_blue
+        new_birth.create_colors()
+
 
     def consume(self,victim):
     # This function consumes a victim.
@@ -117,24 +146,24 @@ class Bubble(QRect,QWidget):
         self.velocityY = new_vy
 
         # merge colors.  This is more difficult that you might think in an RGB space because white is 0xFFFFFF
+        self.merge_colors(victim)
 
+#        new_red,new_green,new_blue = rgb_mix_colors(old_area,victim.area, (self.color_red, self.color_green,
+#                                     self.color_blue), (victim.color_red, victim.color_green, victim.color_blue))
+#        self.color_red = new_red
+#        self.color_green = new_green
+#        self.color_blue = new_blue
 
-        new_red,new_green,new_blue = rgb_mix_colors(old_area,victim.area, (self.color_red, self.color_green,
-                                     self.color_blue), (victim.color_red, victim.color_green, victim.color_blue))
-        self.color_red = new_red
-        self.color_green = new_green
-        self.color_blue = new_blue
+#        self.high_color_red = self.color_red + 0x40
+#        self.high_color_green = self.color_green + 0x40
+#        self.high_color_blue = self.color_blue + 0x40
 
-        self.high_color_red = self.color_red + 0x40
-        self.high_color_green = self.color_green + 0x40
-        self.high_color_blue = self.color_blue + 0x40
-
-        if self.high_color_red > 0xFF:
-            self.high_color_red = 0xFF
-        if self.high_color_green > 0xFF:
-            self.high_color_green = 0xFF
-        if self.high_color_blue > 0xFF:
-            self.high_color_blue = 0xFF
+#        if self.high_color_red > 0xFF:
+#            self.high_color_red = 0xFF
+#        if self.high_color_green > 0xFF:
+#           self.high_color_green = 0xFF
+#       if self.high_color_blue > 0xFF:
+#            self.high_color_blue = 0xFF
 
     def move(self):
         FRICTION = 0 #-0.000001*self.area
@@ -166,6 +195,7 @@ class Bubble(QRect,QWidget):
     def draw(self):
         if self.alive:
             painter = QtGui.QPainter(self.parent.pixmap())
+            painter.setRenderHint(QtGui.QPainter.Antialiasing)
             brush = QtGui.QBrush()
             brush.setStyle(Qt.SolidPattern)
             brush.isOpaque()
