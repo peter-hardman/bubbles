@@ -6,13 +6,13 @@ from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 from PyQt5 import QtGui
 
-MAX_BUBBLE_AREA = 20000
+MAX_BUBBLE_AREA = 40000
 MAX_AREA = 5000
-AREA_WIDTH = 800
-AREA_HEIGHT = 600
+AREA_WIDTH = 2048
+AREA_HEIGHT = 1152
 TIMER_INTERVAL = 10
 MIN_HIGHLIGHT_RADIUS = 10
-INFO_LIFETIME = 30
+INFO_LIFETIME = 100
 
 class Bubble(QRect,QWidget):
 
@@ -259,16 +259,17 @@ class Bubble(QRect,QWidget):
 #            painter.drawPoint(self.locationX , self.locationY)
 #   End block.
             if (self.show_info_count > 0):
-            #    sbrush = QtGui.QBrush()
-            #    sbrush.setStyle(Qt.SolidPattern)
-            #    sbrush.setColor(QtGui.QColor('white'))
-            #    status_rect = QRect(self.locationX, self.locationY, 50, 50)
-            #    painter.fillRect(status_rect, sbrush)
+                painter.setFont(QtGui.QFont("Arial", 8))
                 painter.setPen(QtGui.QColor('White'))
                 status_str = "Area =" + str(int(self.area))
                 painter.drawText(self.locationX+5, self.locationY+0, status_str)
                 status_str = "Age =" + str(self.age)
-                painter.drawText(self.locationX+5, self.locationY+20, status_str)
+                painter.drawText(self.locationX+5, self.locationY+15, status_str)
+                status_str = "X=" + str(int(self.locationX))+ " Y="+str(int(self.locationY))
+                painter.drawText(self.locationX + 5, self.locationY + 30, status_str)
+                status_str = "vX=%.2f vY=%.2f" % (self.velocityX,self.velocityY)
+                painter.drawText(self.locationX + 5, self.locationY + 45, status_str)
+                
                 self.show_info_count=self.show_info_count-1
             painter.end()
         else:
