@@ -278,6 +278,8 @@ class AppForm(QMainWindow):
         layout = QVBoxLayout()
         layout.addWidget(self.main_frame)
         self.setLayout(layout)
+        self.setFixedSize(layout.sizeHint())
+
 
 def main():
     app = QApplication(sys.argv)
