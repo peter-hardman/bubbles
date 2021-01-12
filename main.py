@@ -212,27 +212,42 @@ class Bubble(QRect,QWidget):
             pen.setColor(QtGui.QColor(self.color_red, self.color_green, self.color_blue))
             painter.setPen(pen)
             painter.setBrush(brush)
+
+            g = QtGui.QRadialGradient(self.locationX-self.radius/1.75, self.locationY-self.radius/1.75,self.radius)
+            g.setColorAt(1, QtGui.QColor(self.color_red, self.color_green, self.color_blue))
+            g.setColorAt(0, QtGui.QColor('white'))
+            painter.setBrush(g)
+
             painter.drawEllipse(self.locationX-self.radius, self.locationY-self.radius, self.radius*2, self.radius*2)
 
-            # Draw highlight.
-            if self.radius> MIN_HIGHLIGHT_RADIUS:
+            # Draw highlights.
+            if self.radius> 1000000: #MIN_HIGHLIGHT_RADIUS:
                 pen = QtGui.QPen()
                 pen.setWidth(1)
                 pen.setColor(QtGui.QColor(self.high_color_red, self.high_color_green, self.high_color_blue))
                 painter.setPen(pen)
                 brush.setColor(QtGui.QColor(self.high_color_red, self.high_color_green, self.high_color_blue))
-                painter.setBrush(brush)
+                brush.setStyle(Qt.SolidPattern)
+
+                g = QtGui.QRadialGradient(0,20,20)
+                g.setColorAt(0,QtGui.QColor(self.high_color_red, self.high_color_green, self.high_color_blue))
+                g.setColorAt(10, QtGui.QColor('white'))
+                painter.setBrush(g)
+                painter.setPen(Qt.NoPen)
+                #painter.setBrush(brush)
                 painter.drawEllipse(self.locationX - self.radius/1.75, self.locationY - self.radius/1.75, self.radius / 2, self.radius / 2)
 
-                #pen.setColor(QtGui.QColor('white'))
+            if self.radius > MIN_HIGHLIGHT_RADIUS:
+                pen = QtGui.QPen()
+                pen.setWidth(1)
+                pen.setColor(QtGui.QColor(self.high_color_red, self.high_color_green, self.high_color_blue))
                 painter.setPen(pen)
                 # Draw horizontal arc
                 painter.drawArc(self.locationX - self.radius,self.locationY-self.radius/3, self.radius*2,
                             self.radius/2, 16*180, 16*180)
-
                 # Draw vertical arc
-                painter.drawArc(self.locationX - self.radius / 3, self.locationY - self.radius , self.radius / 2,
-                            self.radius * 2, 16 * 270, 16 * 180)
+                painter.drawArc(self.locationX-self.radius/3, self.locationY - self.radius , self.radius / 2,
+                            self.radius * 2, 16*270, 16*180)
 
 #   This next block draws a black dot in the center to show where it is. Helps for debugging.
 #            pen.setColor(QtGui.QColor('black'))
