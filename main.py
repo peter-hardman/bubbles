@@ -1,18 +1,17 @@
 import sys
 import random
 import math
-#from PyQt5 import QtCore, QtGui, QtWidgets, uic
-#from PyQt5.QtCore import Qt
 
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 from PyQt5 import QtGui
 
-MAX_BUBBLE_AREA =  20000
+MAX_BUBBLE_AREA = 20000
 MAX_AREA = 5000
-AREA_WIDTH =800
-AREA_HEIGHT =600
-TIMER_INTERVAL =10
+AREA_WIDTH = 800
+AREA_HEIGHT = 600
+TIMER_INTERVAL = 10
+MIN_HIGHLIGHT_RADIUS = 10
 
 def rgb_mix_colors(area1,area2, *colors):
     """ color mix
@@ -20,13 +19,23 @@ def rgb_mix_colors(area1,area2, *colors):
     :param colors: list of colors (tuple of rgb values)
     :return: relative mix of rgb colors """
     r = g = b = 0
+    r = colors[0][0] + (colors[0][0] - colors[1][0]) * (area2 / area1)
+    g = colors[0][1] + (colors[0][1] - colors[1][1]) * (area2 / area1)
+    b = colors[0][2] + (colors[0][2] - colors[1][2]) * (area2 / area1)
 
-#    print( colors[0][0],colors[0][1],colors[0][2])
-#    print( colors[1][0], colors[1][1], colors[1][2])
+    if int(r) > 0xFF:
+        r = 0xFF
+    if int(g) > 0xFF:
+        g = 0xFF
+    if int(b) > 0xFF:
+        b = 0xFF
 
-    r= colors[0][0]+ math.fabs(colors[0][0]-colors[1][0])*(area2/area1)
-    g = colors[0][1] + math.fabs(colors[0][1] - colors[1][1]) * (area2 / area1)
-    b = colors[0][2] + math.fabs(colors[0][2] - colors[1][2]) * (area2 / area1)
+    if int(r) < 0x10:
+        r = 0x10
+    if int(g) < 0x10:
+        g = 0x10
+    if int(b) < 0x10:
+        b = 0x10
 
     return int(r), int(g), int(b)
 
@@ -37,84 +46,95 @@ class Bubble(QRect,QWidget):
 
         self.parent= parent
         self.bounds = boundsRect
-        self.radius = random.randint(1,3)
+        self.radius = random.randint(1, 3)   #was 1 to 3
         self.area = math.pi * self.radius*self.radius
         width = self.bounds.width()
         height = self.bounds.height()
-        self.locationX = width/2+float(random.randint( -self.radius,  self.radius))
+        self.locationX = width/2+float(random.randint(-self.radius,  self.radius))
         self.locationY = height/2+float(random.randint(-self.radius, self.radius))
-        self.color = random.randint(0,0xFFFFFF)
 
-        self.velocityX = 1.00 * random.randint(-10,10) #float (random.randint(-100,100)/10)
-        self.velocityY = 1.00 * random.randint(-10,10) #float(random.randint(-100, 100) / 10)
+        self.color_red = random.randint(0, 0xFF)
+        self.color_green = random.randint(0, 0xFF)
+        self.color_blue = random.randint(0, 0xFF)
+
+        self.high_color_red = self.color_red + 0x40
+        self.high_color_green = self.color_green + 0x40
+        self.high_color_blue = self.color_blue + 0x40
+
+        if self.high_color_red >0xFF:
+            self.high_color_red = 0xFF
+        if self.high_color_green >0xFF:
+            self.high_color_green = 0xFF
+        if self.high_color_blue > 0xFF:
+            self.high_color_blue = 0xFF
+
+        self.velocityX = 1.00 * random.randint(-10, 10) #float (random.randint(-100,100)/10)
+        self.velocityY = 1.00 * random.randint(-10, 10) #float(random.randint(-100, 100) / 10)
 
         self.alive = True
 
     def birth(self,new_birth):
-        print ("birth")
         # when we get too large, we start to emit bubbles from ourselves which are proportional to total area.
+        # Have some randomness to the size of the ones emitted.
+
         new_birth.area = self.area * random.randint(1,20)*0.001
         new_birth.radius=math.sqrt(new_birth.area/math.pi)
 
         self.area= self.area -new_birth.area
         self.radius = math.sqrt(self.area / math.pi)
         # put the new bubble somewhere on our circumference.
-        #For now just hack it to always be the y=0, x-axis.
         angle= random.randint(1,360)
 
         new_birth.locationX=self.locationX+(self.radius+new_birth.radius)*math.sin(angle*math.pi/180)
         new_birth.locationY = self.locationY+(self.radius+new_birth.radius)*math.cos(angle*math.pi/180)
 
-        # Always fire the new_birth away from us.
+        # Always fire the new_birth away from us. Make the speed proportional to the size.
         new_birth.velocityX=(new_birth.radius)*math.sin(angle*math.pi/180)
         new_birth.velocityY =(new_birth.radius)*math.cos(angle*math.pi/180)
-
-        new_birth.color=self.color
-
+        # Make the children the same color as parent too.
+        new_birth.color_red=self.color_red
+        new_birth.color_green = self.color_green
+        new_birth.color_blue = self.color_blue
 
     def consume(self,victim):
-
-        # Merge so that total area is preserved.
-        old_area=self.area
-        self.area= old_area+victim.area
-#        if new_area>300:
-#            new_area=300
-
+    # This function consumes a victim.
+    # First merge so that total area is preserved.
+        old_area = self.area
+        self.area = old_area+victim.area
+    # Recalculate the radius of the new bubble.
         self.radius = math.sqrt(self.area/math.pi)
-
-        # Merge so that new location is on center of "mass" of the two parts.
-        newX = self.locationX +  (victim.locationX-self.locationX)/(self.area/victim.area)
-        newY = self.locationY +  (victim.locationY-self.locationY)/(self.area/victim.area)
-
-        self.locationX = newX
-        self.locationY = newY
+    # Merge so that new location is on center of "mass" of the two parts.
+        new_x = self.locationX + (victim.locationX-self.locationX)/(self.area/victim.area)
+        new_y = self.locationY + (victim.locationY-self.locationY)/(self.area/victim.area)
+        self.locationX = new_x
+        self.locationY = new_y
 
         #merge velocities.
-        new_Vx = ((old_area*self.velocityX) + (victim.area*victim.velocityX))/ self.area
-        new_Vy = ((old_area * self.velocityY) + (victim.area * victim.velocityY)) / self.area
+        new_vx = ((old_area*self.velocityX) + (victim.area*victim.velocityX))/ self.area
+        new_vy = ((old_area * self.velocityY) + (victim.area * victim.velocityY)) / self.area
 
-        self.velocityX = new_Vx
-        self.velocityY = new_Vy
+        self.velocityX = new_vx
+        self.velocityY = new_vy
 
         # merge colors.  This is more difficult that you might think in an RGB space because white is 0xFFFFFF
-        red=    (self.color & 0xFF0000)>>16
-        green=  (self.color & 0x00FF00)>>8
-        blue =  (self.color & 0x0000FF)
 
-        victim_red =   (victim.color & 0xFF0000) >> 16
-        victim_green = (victim.color & 0x00FF00) >> 8
-        victim_blue =  (victim.color & 0x0000FF)
 
-#        print(victim_red, victim_green, victim_blue)
-#        new_red =  int(red - (red- victim_red) / 2)
-#       new_green = int(green - (green - victim_green) / 2)
-#        new_blue = int(blue - (blue - victim_blue) / 2)
+        new_red,new_green,new_blue = rgb_mix_colors(old_area,victim.area, (self.color_red, self.color_green,
+                                     self.color_blue), (victim.color_red, victim.color_green, victim.color_blue))
+        self.color_red = new_red
+        self.color_green = new_green
+        self.color_blue = new_blue
 
-        new_red,new_green,new_blue = rgb_mix_colors(old_area,victim.area, (red, green, blue), (victim_red, victim_green, victim_blue))
+        self.high_color_red = self.color_red + 0x40
+        self.high_color_green = self.color_green + 0x40
+        self.high_color_blue = self.color_blue + 0x40
 
-        # new color is proportional to amount consumed.
-        new_color= int((( new_red & 0x0000FF)<<16) + ((new_green& 0x0000FF)<<8) + (new_blue& 0x0000FF))
-        self.color=new_color
+        if self.high_color_red > 0xFF:
+            self.high_color_red = 0xFF
+        if self.high_color_green > 0xFF:
+            self.high_color_green = 0xFF
+        if self.high_color_blue > 0xFF:
+            self.high_color_blue = 0xFF
 
     def move(self):
         FRICTION = 0 #-0.000001*self.area
@@ -135,7 +155,7 @@ class Bubble(QRect,QWidget):
          #   self.locationY = self.bounds.top() - (self.radius+1)
             self.velocityY =self.velocityY * -1.0
 
-        #update the velocity by introducing friction (or dark matter)
+        #update the velocity by introducing friction (or some mysterious force that acclerates particles like dark matter)
         self.velocityX = self.velocityX + self.velocityX*FRICTION
         self.velocityY = self.velocityY + self.velocityY*FRICTION
 
@@ -149,22 +169,52 @@ class Bubble(QRect,QWidget):
             brush = QtGui.QBrush()
             brush.setStyle(Qt.SolidPattern)
             brush.isOpaque()
-            brush.setColor(QtGui.QColor(self.color))
+            brush.setColor(QtGui.QColor(self.color_red, self.color_green, self.color_blue))
+            #   This next block would have put a white border around each sphere.
             pen = QtGui.QPen()
-#            pen.setWidth(1)
-#            pen.setColor(QtGui.QColor('white'))
-#            painter.setPen(pen)
+            pen.setWidth(1)
+            pen.setColor(QtGui.QColor('white'))
+            painter.setPen(pen)
+
+
+            pen = QtGui.QPen()
+            pen.setWidth(1)
+            pen.setColor(QtGui.QColor(self.color_red, self.color_green, self.color_blue))
+            painter.setPen(pen)
             painter.setBrush(brush)
             painter.drawEllipse(self.locationX-self.radius, self.locationY-self.radius, self.radius*2, self.radius*2)
 
+            # Draw highlight.
+            if self.radius> MIN_HIGHLIGHT_RADIUS:
+                pen = QtGui.QPen()
+                pen.setWidth(1)
+                pen.setColor(QtGui.QColor(self.high_color_red, self.high_color_green, self.high_color_blue))
+                painter.setPen(pen)
+                brush.setColor(QtGui.QColor(self.high_color_red, self.high_color_green, self.high_color_blue))
+                painter.setBrush(brush)
+                painter.drawEllipse(self.locationX - self.radius/1.75, self.locationY - self.radius/1.75, self.radius / 2, self.radius / 2)
+
+                #pen.setColor(QtGui.QColor('white'))
+                painter.setPen(pen)
+                # Draw horizontal arc
+                painter.drawArc(self.locationX - self.radius,self.locationY-self.radius/3, self.radius*2,
+                            self.radius/2, 16*180, 16*180)
+
+                # Draw vertical arc
+                painter.drawArc(self.locationX - self.radius / 3, self.locationY - self.radius , self.radius / 2,
+                            self.radius * 2, 16 * 270, 16 * 180)
+
+#   This next block draws a black dot in the center to show where it is. Helps for debugging.
 #            pen.setColor(QtGui.QColor('black'))
 #            brush.setColor(QtGui.QColor('black'))
 #            painter.setPen(pen)
 #            painter.setBrush(brush)
 #            painter.drawPoint(self.locationX , self.locationY)
+#   End block.
             painter.end()
         else:
             pass
+
 
 class AppForm(QMainWindow):
     def __init__(self, parent=None):
@@ -174,11 +224,11 @@ class AppForm(QMainWindow):
 
         self.create_main_frame()
         self.main_frame.show()
-        self.frame_count=0
+        self.frame_count = 0
         self.bubbles = []
         i = 0
         while i < 10:
-            b = Bubble(self.main_frame.frameRect(),self.main_frame)
+            b = Bubble(self.main_frame.frameRect(), self.main_frame)
             self.bubbles.append(b)
             i += 1
         self.timer = QTimer(self)
@@ -187,28 +237,25 @@ class AppForm(QMainWindow):
         self.timer_interval = TIMER_INTERVAL
         self.timer.start(self.timer_interval)
 
-        self.total_bubble_area=0
+        self.total_bubble_area = 0
+
 
     def update_bubbles(self):
-
-        #update the position of the bubbles.
+    # Update the position of the bubbles.
         for b in self.bubbles:
             b.move()
         # check for collisions.  For now assume 1 per loop.
         for b in self.bubbles:
             for a in self.bubbles:
                 if (a!=b) and (a.alive) and (b.alive):
-                    x = a.locationX-b.locationX;
-                    y = a.locationY-b.locationY;
+                    x = a.locationX-b.locationX
+                    y = a.locationY-b.locationY
                     distance = math.sqrt( (x*x)+(y*y))
                     if (distance < (a.radius+b.radius)):
-#                        print ("collision")
                         if (a.radius>b.radius):
-                            #print ("a consumes b")
                             b.alive=False
                             a.consume(b)
                         else:
-                            #print("b consumes a")
                             a.alive = False
                             b.consume(a)
 
