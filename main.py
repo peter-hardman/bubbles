@@ -6,10 +6,10 @@ from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 from PyQt5 import QtGui
 
-MAX_BUBBLE_AREA = 40000
+TOTAL_BUBBLE_AREA = 20000
 MAX_AREA = 5000
-AREA_WIDTH = 2048
-AREA_HEIGHT = 1152
+AREA_WIDTH = 640    #2048
+AREA_HEIGHT = 480  #1152
 TIMER_INTERVAL = 10
 MIN_HIGHLIGHT_RADIUS = 10
 INFO_LIFETIME = 100
@@ -103,7 +103,7 @@ class Bubble(QRect,QWidget):
         new_green = g + ((gv-g) * (victim.area / self.area))
         new_blue = b + ((bv - b) * (victim.area / self.area))
 
-        print ("[",r,g,b,"][",rv,gv,bv, "][",new_red,new_green,new_blue,"]")
+#        print ("[",r,g,b,"][",rv,gv,bv, "][",new_red,new_green,new_blue,"]")
         self.set_colors(new_red,new_green,new_blue)
 
     def birth(self,new_birth):
@@ -223,21 +223,6 @@ class Bubble(QRect,QWidget):
             painter.drawEllipse(self.locationX-self.radius, self.locationY-self.radius, self.radius*2, self.radius*2)
 
             # Draw highlights.
-            if self.radius> 1000000: #MIN_HIGHLIGHT_RADIUS:
-                pen = QtGui.QPen()
-                pen.setWidth(1)
-                pen.setColor(QtGui.QColor(self.high_color_red, self.high_color_green, self.high_color_blue))
-                painter.setPen(pen)
-                brush.setColor(QtGui.QColor(self.high_color_red, self.high_color_green, self.high_color_blue))
-                brush.setStyle(Qt.SolidPattern)
-
-                g = QtGui.QRadialGradient(0,20,20)
-                g.setColorAt(0,QtGui.QColor(self.high_color_red, self.high_color_green, self.high_color_blue))
-                g.setColorAt(10, QtGui.QColor('white'))
-                painter.setBrush(g)
-                painter.setPen(Qt.NoPen)
-                #painter.setBrush(brush)
-                painter.drawEllipse(self.locationX - self.radius/1.75, self.locationY - self.radius/1.75, self.radius / 2, self.radius / 2)
 
             if self.radius > MIN_HIGHLIGHT_RADIUS:
                 pen = QtGui.QPen()
@@ -345,9 +330,9 @@ class AppForm(QMainWindow):
     def on_timer(self):
         self.frame_count = self.frame_count + 1
 #        print("on_timer")
-        print(len(self.bubbles),self.total_bubble_area)
+#        print(len(self.bubbles),self.total_bubble_area)
         # add a bubble
-        if self.total_bubble_area<MAX_BUBBLE_AREA:
+        if self.total_bubble_area<TOTAL_BUBBLE_AREA:
             b = Bubble(self.main_frame.frameRect(), self.main_frame)
             self.total_bubble_area+=b.area
             self.bubbles.append(b)
