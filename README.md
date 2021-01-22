@@ -3,7 +3,7 @@ A simple python application to play with PyQT5 drawing functions and understand 
 
 Should look something like this
 
-![test](https://raw.githubusercontent.com/peter-hardman/bubbles/main/capture.png)
+![test](capture.png)
 
 screenshot1.JPG
-![Screenshot](https://github.com/peter-hardman/bubbles/img/screenshot1.JPG)
+![Screenshot](./img/screenshot1.JPG)
