@@ -3,4 +3,5 @@ A simple python application to play with PyQT5 drawing functions and understand 
 
 Should look something like this
 
-![Screenshot](capture.png)
+screenshot1.JPG
+![Screenshot](https://github.com/peter-hardman/bubbles/img/screenshot1.JPG)
