@@ -17,7 +17,6 @@ INFO_LIFETIME = 100
 class Bubble(QRect,QWidget):
 
 
-
     def __init__(self,boundsRect,parent):
 
         self.parent= parent
