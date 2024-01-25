@@ -6,13 +6,22 @@ from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 from PyQt5 import QtGui
 
-TOTAL_BUBBLE_AREA = 20000
-MAX_AREA = 9000
+
+ONE_SCREEN = False              # Set this to true if you want to use only the first monitor.
+
+TOTAL_BUBBLE_AREA = 90000       # Total size of all the bubbles in the system.
+MAX_AREA = 16000                 # Maximum size of largest bubble.  Bubbles that grow larger than this will emit until they are smaller
+GROWTH_RATIO = 1.0                # How many times larger than the MAX_AREA does it have to be to emit.
 AREA_WIDTH = 640  # 2048
 AREA_HEIGHT = 480  # 1152
 TIMER_INTERVAL = 10
 MIN_HIGHLIGHT_RADIUS = 10
-INFO_LIFETIME = 100
+INFO_LIFETIME = 100             # How many cycles to show the lifetime info on a bubble.
+VELOCITY_SCALER = 1
+
+RANDOM_EMISSION = False
+ENABLE_GRAVITY = True
+G_CONST = 1.0e-9        # Gravitational constant used to control force of attraction between things
 
 import ctypes
 
@@ -39,6 +48,18 @@ class Bubble(QRect, QWidget):
         self.show_info_count = 0
         self.age = 0
         self.alive = True
+        self.birthing = False
+
+        # put the new bubble somewhere on our circumference.
+        self.emission_angle = random.randint(1, 360)    # Create an angle for each bubble.
+
+        check = random.randint(1, 10)
+        if check <=5:
+            self.birth_direction= 1
+        else:
+            self.birth_direction = -1
+
+
 
     def showInfo(self):
         self.show_info_count = INFO_LIFETIME
@@ -119,14 +140,19 @@ class Bubble(QRect, QWidget):
         self.area = self.area - new_birth.area
         self.radius = math.sqrt(self.area / math.pi)
         # put the new bubble somewhere on our circumference.
-        angle = random.randint(1, 360)
+        if RANDOM_EMISSION:
+            angle = random.randint(1, 360)
+        else:
+            angle = self.emission_angle
+            self.emission_angle = self.emission_angle + (15 * self.birth_direction)
+
 
         new_birth.locationX = self.locationX + (self.radius + new_birth.radius) * math.sin(angle * math.pi / 180)
         new_birth.locationY = self.locationY + (self.radius + new_birth.radius) * math.cos(angle * math.pi / 180)
 
         # Always fire the new_birth away from us. Make the speed proportional to the size.
-        new_birth.velocityX = 0.3*(new_birth.radius) * math.sin(angle * math.pi / 180)
-        new_birth.velocityY = 0.3*(new_birth.radius) * math.cos(angle * math.pi / 180)
+        new_birth.velocityX = VELOCITY_SCALER*(new_birth.radius) * math.sin(angle * math.pi / 180)
+        new_birth.velocityY = VELOCITY_SCALER*(new_birth.radius) * math.cos(angle * math.pi / 180)
         new_birth.create_colors()
 
     def consume(self, victim):
@@ -223,8 +249,10 @@ class Bubble(QRect, QWidget):
             g.setColorAt(0, QtGui.QColor('white'))
             painter.setBrush(g)
 
-            painter.drawEllipse(self.locationX - self.radius, self.locationY - self.radius, self.radius * 2,
-                                self.radius * 2)
+            painter.drawEllipse(int(self.locationX - self.radius),
+                                int(self.locationY - self.radius),
+                                int(self.radius * 2),
+                                int(self.radius * 2))
 
             # Draw highlights.
 
@@ -234,11 +262,16 @@ class Bubble(QRect, QWidget):
                 pen.setColor(QtGui.QColor(self.high_color_red, self.high_color_green, self.high_color_blue))
                 painter.setPen(pen)
                 # Draw horizontal arc
-                painter.drawArc(self.locationX - self.radius, self.locationY - self.radius / 3, self.radius * 2,
-                                self.radius / 2, 16 * 180, 16 * 180)
+                painter.drawArc(int(self.locationX - self.radius),
+                                int(self.locationY - self.radius / 3),
+                                int(self.radius * 2),
+                                int(self.radius / 2), 16 * 180, 16 * 180)
                 # Draw vertical arc
-                painter.drawArc(self.locationX - self.radius / 3, self.locationY - self.radius, self.radius / 2,
-                                self.radius * 2, 16 * 270, 16 * 180)
+                painter.drawArc(int(self.locationX - self.radius / 3),
+                                int(self.locationY - self.radius),
+                                int(self.radius / 2),
+                                int(self.radius * 2)
+                                , 16 * 270, 16 * 180)
 
             #   This next block draws a black dot in the center to show where it is. Helps for debugging.
             #            pen.setColor(QtGui.QColor('black'))
@@ -251,13 +284,19 @@ class Bubble(QRect, QWidget):
                 painter.setFont(QtGui.QFont("Arial", 8))
                 painter.setPen(QtGui.QColor('White'))
                 status_str = "Area =" + str(int(self.area))
-                painter.drawText(self.locationX + 5, self.locationY + 0, status_str)
+                painter.drawText(int(self.locationX + 5), int(self.locationY + 0), status_str)
                 status_str = "Age =" + str(self.age)
-                painter.drawText(self.locationX + 5, self.locationY + 15, status_str)
+                painter.drawText(int(self.locationX + 5), int(self.locationY + 15), status_str)
                 status_str = "X=" + str(int(self.locationX)) + " Y=" + str(int(self.locationY))
-                painter.drawText(self.locationX + 5, self.locationY + 30, status_str)
+                painter.drawText(int(self.locationX + 5), int(self.locationY + 30), status_str)
                 status_str = "vX=%.2f vY=%.2f" % (self.velocityX, self.velocityY)
-                painter.drawText(self.locationX + 5, self.locationY + 45, status_str)
+                painter.drawText(int(self.locationX + 5), int(self.locationY + 45), status_str)
+
+                if self.birth_direction >0:
+                    status_str = "Birth anti-clock"
+                else:
+                    status_str = "Birth clock"
+                painter.drawText(int(self.locationX + 5), int(self.locationY + 60), status_str)
 
                 self.show_info_count = self.show_info_count - 1
             painter.end()
@@ -308,7 +347,7 @@ class AppForm(QMainWindow):
     def update_gravity(self):
         accelerationX = 0
         accelerationY = 0
-        G_const = 5.0e-9
+
         for b in self.bubbles:
             for a in self.bubbles:
                 if (a != b):
@@ -316,7 +355,7 @@ class AppForm(QMainWindow):
                     r = (a.locationX - b.locationX) ** 2 + (a.locationY - b.locationY) ** 2
                     r = math.sqrt(r)
                     if r:
-                        tmp = G_const * a.area**2 / r ** 2
+                        tmp = G_CONST * a.area**2 / r ** 2
                         accelerationX += tmp * (a.locationX - b.locationX)
                         accelerationY += tmp * (a.locationY - b.locationY)
 
@@ -346,10 +385,16 @@ class AppForm(QMainWindow):
                 self.bubbles.remove(b)
 
         for b in self.bubbles:
-            if b.area > MAX_AREA:
+
+            if b.area > MAX_AREA*GROWTH_RATIO:       # Can only give birth is we are over sized
+                b.birthing = True
+
+            if b.area > MAX_AREA and b.birthing:
                 new_bubble = Bubble(self.main_frame.frameRect(), self.main_frame)
                 b.birth(new_bubble)
                 self.bubbles.append(new_bubble)
+            else:
+                b.birthing = False
 
         # draw new list.
         for b in self.bubbles:
@@ -368,7 +413,8 @@ class AppForm(QMainWindow):
         self.draw_background()
         self.draw_status()
 
-        self.update_gravity()
+        if ENABLE_GRAVITY:
+            self.update_gravity()
         self.update_bubbles()
         self.update()
 
@@ -410,7 +456,7 @@ class AppForm(QMainWindow):
 
     def create_main_frame(self):
 
-        ONE_SCREEN = False
+
         monitor_0 = QDesktopWidget().screenGeometry(0)
         monitor_1 = QDesktopWidget().screenGeometry(1)
 

@@ -1,0 +1,19 @@
+We want to use pyinstaller to build a single executable from the code.
+
+pip install pyinstaller
+
+
+The following command executed in the terminal will build the exe from the script main.py
+pyinstaller --onefile  main.py
+
+The large .exe file is created in a directory called dist inside the project directory.
+
+For this example the main.exe file is 36M in size !
+
+
+See
+
+https://datatofish.com/executable-pyinstaller/
+
+
+To make the complete .exe into a screensaver rename to *.scr  and then copy to Windows/System32 folder.
